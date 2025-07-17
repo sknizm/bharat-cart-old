@@ -1,0 +1,275 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+
+enum UserType {
+  ADMIN
+  CUSTOMER
+}
+
+enum OrderStatus {
+  ONHOLD
+  PROCESSING
+  CANCELLED
+  REFUNDED
+  DELIVERED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentGateway {
+  COD
+  RAZORPAY
+  INSTAMOJO
+  UPI
+  CREDITCARD
+}
+
+enum ShippingStatus {
+  PENDING
+  SHIPPED
+  DELIVERED
+  RETURNED
+}
+
+enum CouponType {
+  PERCENT
+  FIXED
+}
+
+enum MembershipStatus {
+  ACTIVE
+  CANCELED
+  EXPIRED
+  TRIALING   // ← spelling fixed (was “TRAILING”)
+}
+
+//
+// ─── MODELS ──────────────────────────────────────────────────────────────────────
+//
+model User {
+  id          String   @id @default(uuid())
+  name        String?
+  email       String   @unique
+  password    String
+  userType    UserType
+
+  ownedStores Store[]   @relation("Owner")          // user can own many stores
+  customerStores Store[] @relation("Customers")     // user (as CUSTOMER) belongs to many stores
+
+  sessions    Session[]
+  orders      Order[]
+  addresses   Address[]
+  memberships Membership[]
+}
+
+
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  expires      DateTime
+}
+
+model Store {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  domain      String?  @unique
+  logo        String?
+  image       Image[]
+
+  ownerId     String
+  owner       User     @relation("Owner", fields: [ownerId], references: [id])
+
+  customers   User[]   @relation("Customers")
+
+  products    Product[]
+  categories  Category[]
+  orders      Order[]
+  coupons     Coupon[]
+
+  membership  Membership?  // no @relation needed here
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+
+model Image {
+  id        String   @id @default(uuid())
+  url       String
+  alt       String?                  // Optional alt text for accessibility
+  type      String?                  // Optional: e.g., 'logo', 'banner', 'gallery'
+  storeId   String                   // Foreign key to Store
+  store     Store   @relation(fields: [storeId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+model Product {
+  id          String    @id @default(uuid())
+  storeId     String
+  store       Store     @relation(fields: [storeId], references: [id])
+
+  sku         String?   @unique
+  name        String
+  description String?
+  images      Json?
+  price       Decimal   @db.Decimal(10, 2)
+
+  variants    ProductVariant[]
+
+  /// Many‑to‑many product ⇆ category
+  categories  Category[] @relation("ProductCategories")
+
+  /// Many‑to‑many product ⇆ order
+  orders      Order[]    @relation("OrderProducts")
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model ProductVariant {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  name      String?
+  sku       String?  @unique
+  price     Decimal  @db.Decimal(10, 2)
+  stock     Int      @default(0)
+}
+
+model Category {
+  id        String     @id @default(uuid())
+  storeId   String
+  store     Store      @relation(fields: [storeId], references: [id])
+
+  name      String
+  parentId  String?
+  parent    Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryHierarchy")
+
+  /// Back‑relation for product ⇆ category
+  products  Product[]  @relation("ProductCategories")
+}
+
+model Order {
+  id              String        @id @default(cuid())
+  storeId         String
+  store           Store         @relation(fields: [storeId], references: [id])
+
+  userId          String?
+  user            User?         @relation(fields: [userId], references: [id])
+
+  status          OrderStatus
+  paymentStatus   PaymentStatus
+  total           Decimal       @db.Decimal(10, 2)
+
+  /// Many‑to‑many order ⇆ product
+  items           Product[]     @relation("OrderProducts")
+
+  payments        Payment[]
+  shipments       Shipment[]
+
+  billingAddressId  String?
+  billingAddress    Address?     @relation("Billing",  fields: [billingAddressId],  references: [id])
+
+  shippingAddressId String?
+  shippingAddress   Address?     @relation("Shipping", fields: [shippingAddressId], references: [id])
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model Payment {
+  id            String         @id @default(cuid())
+  orderId       String
+  order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  amount        Decimal        @db.Decimal(10, 2)
+  gateway       PaymentGateway
+  status        PaymentStatus
+  transactionId String?        @unique
+  raw           Json?
+  createdAt     DateTime       @default(now())
+}
+
+model Shipment {
+  id             String         @id @default(cuid())
+  orderId        String
+  order          Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  carrier        String?
+  trackingNumber String?
+  status         ShippingStatus @default(PENDING)
+  shippedAt      DateTime?
+  deliveredAt    DateTime?
+}
+
+model Address {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+
+  firstName  String
+  lastName   String
+  line1      String
+  line2      String?
+  city       String
+  state      String
+  postalCode String
+  country    String?
+  phone      String
+
+  /// Symmetric sides of the one‑to‑one address links in Order
+  ordersBilling  Order[] @relation("Billing")
+  ordersShipping Order[] @relation("Shipping")
+}
+
+model Coupon {
+  id             String      @id @default(cuid())
+  storeId        String
+  store          Store       @relation(fields: [storeId], references: [id])
+
+  code           String
+  type           CouponType
+  value          Decimal     @db.Decimal(10, 2)
+  maxRedemptions Int?
+  redeemed       Int         @default(0)
+  validFrom      DateTime
+  validTo        DateTime?
+  isActive       Boolean     @default(true)
+
+  @@unique([storeId, code])
+}
+
+model Membership {
+  id        String   @id @default(cuid())
+  storeId   String   @unique
+  store     Store    @relation(fields: [storeId], references: [id]) // only one side has @relation defined
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  status    MembershipStatus
+  planName  String
+  startedAt DateTime
+  endsAt    DateTime?
+}
