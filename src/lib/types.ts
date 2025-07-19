@@ -7,6 +7,37 @@ export type Store = {
   // Add any other fields you need
 };
 
+export type VariantInput = {
+  name: string;
+  value: string;
+  sku: string;
+  price: number;
+  salePrice: number;
+  stock: number;
+};
+
+
+
+export type Product = {
+  id: string;
+  name: string;
+  price: number;
+  salePrice: number;
+  images: string[];
+  categories: {
+    id: string;
+    name: string;
+  }[];
+  variants: {
+    id: string;
+    type: string;
+    value: string;
+    price: number;
+    salePrice: number;
+    stock: number;
+  }[];
+};
+
   export interface MenuItem {
     id: string;
     name: string;

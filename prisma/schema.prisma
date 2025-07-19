@@ -131,7 +131,8 @@ model Product {
   name        String
   description String?
   images      Json?
-  price       Decimal   @db.Decimal(10, 2)
+  price       Decimal   @default("0") @db.Decimal(10, 2)
+  salePrice   Decimal   @default("0") @db.Decimal(10, 2)
 
   variants    ProductVariant[]
 
@@ -146,14 +147,16 @@ model Product {
 }
 
 model ProductVariant {
-  id        String   @id @default(uuid())
-  productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id          String   @id @default(uuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  name      String?
-  sku       String?  @unique
-  price     Decimal  @db.Decimal(10, 2)
-  stock     Int      @default(0)
+  type        String?  // e.g., "Size", "Color"
+  value       String?  // e.g., "L", "Red"
+  sku         String?  @unique
+  price       Decimal  @default("0") @db.Decimal(10, 2)
+  salePrice   Decimal  @default("0") @db.Decimal(10, 2)
+  stock       Int      @default(0)
 }
 
 model Category {
