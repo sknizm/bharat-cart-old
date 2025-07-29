@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Utensils, Store, Plus, List, Settings } from "lucide-react";
+import { Home, Utensils, Store,  List, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import LogoutButton from "../ui/logout";
@@ -33,33 +33,15 @@ const menuItems: MenuItem[] = [
     label: "Dashboard",
     subItems: [],
   },
-  {
-    id: "store",
-    href: "/dashboard/store",
-    icon: Utensils,
-    label: "Store Management",
-    subItems: [
-      {
-        href: "/dashboard/menu/create",
-        icon: Plus,
-        label: "Create New Menu",
-      },
-      {
-        href: "/dashboard/menu/all",
-        icon: List,
-        label: "All Menus",
-      },
-    ],
-  },
   
   {
     id: "product",
-    href: "/dashboard/product",
+    href: "dashboard/product/all-products",
     icon: Utensils,
     label: "Product",
     subItems: [
       {
-        href: "/dashboard/product/all",
+        href: "dashboard/product/all-products",
         icon: List,
         label: "All Products",
       },

@@ -16,7 +16,7 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen bg-white">
       {/* Fixed Sidebar for md+ screens */}
-      <div className="hidden md:block fixed inset-y-0 left-0 w-64 bg-white border-r z-99">
+      <div className="hidden md:block fixed inset-y-0 left-0 w-64 bg-white border-r z-49">
         <Sidebar />
       </div>
 

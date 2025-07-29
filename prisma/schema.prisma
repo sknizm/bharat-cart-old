@@ -90,6 +90,7 @@ model Store {
   slug        String   @unique
   domain      String?  @unique
   logo        String?
+  banner      String?
   image       Image[]
 
   ownerId     String
